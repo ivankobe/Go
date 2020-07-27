@@ -62,12 +62,25 @@ class Grupa:
                 if self.barva != grupa.barva and koordinata in grupa.svobode:
                     grupa.svobode.remove(koordinata)
 
+    def pojej(self):
+        indeks = 0 if self.igra.na_potezi() == CRNI else 1
+        for kamen in self.koordinate:
+            i, j = kamen
+            self.igra.goban[i][j] = None
+            self.igra.ujetniki[indeks] += 1
+        self.igra.grupe.remove(self)
+        for skupina in self.igra.grupe:              # Preverimo še, ali se je s tem sprostila
+            for kamen in self.koordinate:            # svoboda kakšni drugi grupi.
+                if kamen in skupina.sosedje:
+                    skupina.svobode.add(kamen)
+
 
 class Go:
     
-    def __init__(self, velikost=19):
+    def __init__(self, velikost=19, komi=7.5):
         assert velikost in {9, 13, 19}, f'Goban velikosti {velikost} ne obstaja!'
         self.velikost = velikost
+        self.komi = komi
         self.goban = [[None] * velikost for i in range(velikost)] # Igralno desko (goban) prestavimo s kvadratno matriko.
         self.koordinate = {(i, j) for i in range(velikost) for j in range(velikost)}
         self.ujetniki = [0, 0] # pr1 je števec za bele ujetnike, pr2 pa za črne
@@ -142,7 +155,9 @@ class Go:
         for grupa in sosednje_grupe:
             for svoboda in grupa.svobode:
                 svobode.add(svoboda)
-        return len(svobode) == 1
+        return len(svobode) <= 1 
+        # Če sosednjih grup ni, je poteza samomor natanko tedaj, ko je len(svobode) == 0,
+        # sicer pa natanko tedaj, ko je len(svobode) == 1. 
 
     def pojedene_grupe(self, poteza):
         """Vrnemo grupe, ki bi jih dana poteza pojedla."""
@@ -162,14 +177,6 @@ class Go:
         zorb ^= self.hash_tabela[-1]
         return zorb
 
-    def pojej(self, grupa):
-        indeks = 0 if self.na_potezi() == CRNI else 1
-        for kamen in grupa.koordinate:
-            i, j = kamen
-            self.goban[i][j] = None
-            self.ujetniki[indeks] += 1
-        self.grupe.remove(grupa)
-
     def poteza_je_dovoljena(self, poteza):
         return all([self.poglej(poteza) == None, not self.poteza_je_samomor(poteza), self.izracunaj_hash(poteza) not in self.pretekla_stanja])
 
@@ -177,19 +184,19 @@ class Go:
         return {koordinata for koordinata in self.koordinate if self.poteza_je_dovoljena(koordinata)}
 
     def igraj(self, poteza):
-        assert self.poglej(poteza) == None, f'Polje {poteza} ni prazno!'
-        assert not self.poteza_je_samomor(poteza), 'Poteza je samomor!'
-        zorb = self.izracunaj_hash(poteza)
-        # Ko je pravilo, ki prepoveduje poteze, ki bi rezultirale
-        # v kateri izmed pozicij, ki so tekom dane igre že bile odigrane.
-        assert zorb not in self.pretekla_stanja, 'Poteza krši pravilo ko!'
         if poteza != PASS:
+            assert self.poglej(poteza) == None, f'Polje {poteza} ni prazno!'
+            assert not self.poteza_je_samomor(poteza), 'Poteza je samomor!'
+            zorb = self.izracunaj_hash(poteza)
+            # Ko je pravilo, ki prepoveduje poteze, ki bi rezultirale
+            # v kateri izmed pozicij, ki so tekom dane igre že bile odigrane.
+            assert zorb not in self.pretekla_stanja, 'Poteza krši pravilo ko!'
             self.predaja_poteze = False
             self.pretekla_stanja.append(self.hash)
             self.hash = zorb
             sosednje_grupe = [grupa for grupa in self.grupe if grupa.barva == self.na_potezi() and poteza in grupa.svobode]
             for grupa in self.pojedene_grupe(poteza):
-                self.pojej(grupa)
+                grupa.pojej()
             if len(sosednje_grupe) == 0:
                 self.ustvari_novo_grupo(poteza)
             elif len(sosednje_grupe) == 1:
@@ -198,16 +205,30 @@ class Go:
                 sosednje_grupe[0].zdruzi_se(sosednje_grupe[1:], poteza)
             self.poteza += 1
         else:
+            self.poteza += 1
             if self.predaja_poteze == True:
                 self.konec = True
             else:
                 self.predaja_poteze = True
 
+    def tocka_je_robna(self, tocka):
+        return set(tocka) & {0, self.velikost - 1} != set()
+
     def tocka_je_oko(self, tocka):
         """Ker bomo kasneje simulirali igre, se moramo prepričati, da se bodo te igre končale.
-        To dosežemo tako, da prepovemo poteze, s katerimi bi igralec zapolnjeval lastna očesa."""
-        return self.poglej(tocka) == None and \
-            [self.poglej(sosed) for sosed in self.sosedje(tocka) | self.diagonalni_sosedje(tocka)].count(self.na_potezi) >= 7
+        To dosežemo tako, da prepovemo poteze, s katerimi bi igralec zapolnjeval lastna očesa.
+        Uporabljena definicija očesa ni povsem natančna, a je za naše potrebe dovolj dobra."""
+        if not self.tocka_je_robna(tocka):
+            return all([
+                self.poglej(tocka) == None,
+                [self.poglej(sosed) for sosed in self.sosedje(tocka)].count(self.na_potezi()) == 4,
+                [self.poglej(sosed) for sosed in self.diagonalni_sosedje(tocka)].count(self.na_potezi()) >= 3
+                ])
+        else:
+            return all([
+                self.poglej(tocka) == None,
+                {self.poglej(sosed) for sosed in self.sosedje(tocka) | self.diagonalni_sosedje(tocka)} == {self.na_potezi()}
+                ])
     
     # V nadaljevanju definiramo metode za evalvacijo končnih pozicij. Ob
     # tem predpostavljamo, da v končni poziciji na gobanu ni mrtvih kamnov.
@@ -263,3 +284,9 @@ class Go:
             elif barva == BELI:
                 beli += len(teritorij)
         return crni, beli
+
+    def zmagovalec(self):
+        """Vrne število točk v prid črnemu."""
+        crni, beli = self.prestej_teritorij()
+        crni_u, beli_u = self.ujetniki
+        return crni - crni_u + beli_u - beli - self.komi
