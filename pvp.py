@@ -209,5 +209,5 @@ def main():
         return pvb()
 
 
-# if __name__ == "__main__":
-#     main()
+if __name__ == "__main__":
+    main()
