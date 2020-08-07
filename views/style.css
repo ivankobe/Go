@@ -1,0 +1,115 @@
+.flexbox_vert {
+    display: flex;
+    flex-direction: column;
+    justify-content: start;
+    align-items: center;
+    height: 98vh;
+    border: 3px solid black;
+    background-color: #f8f8f8;
+}
+
+.flexbox_hor {
+    display: flex;
+    flex-direction: row;
+    justify-content: left;
+    /* align-items: center; */
+    height: 98vh;
+    border: 3px solid black;
+    background-color: #f8f8f8;
+}
+
+#flexbox_velikost {
+    display: flex;
+    flex-direction: row;
+    justify-content: start;
+    align-items: center;
+    height: 15vw;
+    margin: 120px;
+    width: 63vw;
+    background-color: inherit;
+}
+
+#goban {
+    display: flex;
+    flex-direction: column;
+    justify-content: start;
+    align-items: center;
+    width: 96vh;
+    padding: 20px;
+    border: 3px solid black;
+    background-color: inherit;
+}
+
+#goban > div {
+    flex: 1; 
+}
+
+.vrstica {
+    display: flex;
+    border: 1px solid black;
+    background-color: inherit;
+    width: inherit;
+}
+
+.vrstica > div {
+    flex: 1;
+}
+
+.polje {
+    border: 1px solid black;
+}
+
+.pozdrav {
+    height: 90px;
+    width: 90vw;
+    margin: 5px;
+    text-align: center;
+    vertical-align: middle;
+    line-height: 90px;
+}
+
+.izbira {
+    height: 70px;
+    width: 90vw;
+    margin: 5px;
+    text-align: center;
+    vertical-align: middle;
+    line-height: 70px;
+}
+
+
+#box_index {
+    border: 2px solid black;
+    width: 30vw;
+    height: 30vw;
+    margin: 50px;
+    text-align: center;
+}
+
+
+.button_index {
+    font-size: 100%;
+    font-family: inherit;
+    border: 0;
+    padding: 0;
+    border: 2px solid black;
+    color: black;
+    width: 30vw;
+    height: 8vw;
+    margin: 1vw;
+}
+
+.button_velikost {
+    font-size: 200%;
+    height: 15vw;
+    width: 15vw;
+    border: 2px solid black;
+    color: black;
+    margin: 3vw;
+}
+
+button:hover {
+    color: white;
+    background-color: black;
+    cursor: pointer;
+}

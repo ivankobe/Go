@@ -4,82 +4,25 @@ from copy import deepcopy
 CRNI = 'X'
 BELI = 'O'
 PASS = 'P'
-PREDAJ = 'PR'
+PREDAJA = 'PR'
 NAPREJ = 'N'
 
 
 class Grupa:
 
     def __init__(self, barva, koordinata, go):
-        i, j = koordinata
         self.barva = barva
         self.koordinate = {koordinata} # Ko je grupa ustvarjena, je najprej vedno dolžine 1
         self.igra = go
-        self.sosedje = go.sosedje(koordinata)
-        self.svobode = {sosed for sosed in self.sosedje if go.poglej(sosed) == None}
-        go.prazna_polja.remove(koordinata)
-        go.grupe.append(self)
-        go.goban[i][j] = self.barva
-        for grupa in go.grupe:
-            if grupa.barva != self.barva and koordinata in grupa.svobode:
-                grupa.svobode.remove(koordinata)
-    
-    # Naslednji funkciji implementirata osnovne interakcije med grupami 
-
-    def razsiri_se(self, koordinata):
-        i, j = koordinata 
-        self.koordinate.add(koordinata)
-        self.igra.goban[i][j] = self.barva
-        self.sosedje.remove(koordinata)
-        self.svobode.remove(koordinata)
-        self.igra.prazna_polja.remove(koordinata)
-        for sosed in self.igra.sosedje(koordinata):
-            if sosed not in self.koordinate:
-                self.sosedje.add(sosed)
-                if self.igra.poglej(sosed) == None:
-                    self.svobode.add(sosed)
-        for grupa in self.igra.grupe:
-            if self.barva != grupa.barva and koordinata in grupa.svobode:
-                grupa.svobode.remove(koordinata)
-
+        self.sosedje = self.igra.sosedje(koordinata)
+        
     def zdruzi_se(self, others, koordinata):
         """Združita se lahko več kot dve grupi naenkrat,
         zato bo drugi argument seznam množic."""
-        i, j = koordinata
-        self.igra.goban[i][j] = self.barva
-        self.igra.prazna_polja.remove(koordinata)
-        self.koordinate.add(koordinata)
         for other in others:
-            for kamen in other.koordinate:
-                self.koordinate.add(kamen)
-            for sosed in other.sosedje:
-                self.sosedje.add(sosed)
-            for svoboda in other.svobode:
-                self.svobode.add(svoboda)
-            self.sosedje.discard(koordinata)
-            self.svobode.discard(koordinata)
+            self.koordinate |= other.koordinate
+            self.svobode -= {koordinata}
             self.igra.grupe.remove(other)
-        for grupa in self.igra.grupe:
-            if self.barva != grupa.barva and koordinata in grupa.svobode:
-                grupa.svobode.remove(koordinata)
-        for sosed in self.igra.sosedje(koordinata):
-            if sosed not in self.koordinate:
-                self.sosedje.add(sosed)
-                if self.igra.poglej(sosed) == None:
-                    self.svobode.add(sosed)
-
-    def pojej(self):
-        indeks = 0 if self.igra.na_potezi() == CRNI else 1
-        for kamen in self.koordinate:
-            i, j = kamen
-            self.igra.goban[i][j] = None
-            self.igra.ujetniki[indeks] += 1
-            self.igra.prazna_polja.add(kamen)
-        self.igra.grupe.remove(self)
-        for skupina in self.igra.grupe:              # Preverimo še, ali se je s tem sprostila
-            for kamen in self.koordinate:            # svoboda kakšni drugi grupi.
-                if kamen in skupina.sosedje:
-                    skupina.svobode.add(kamen)
 
 
 class Go:
@@ -209,7 +152,60 @@ class Go:
             ])
 
     def dovoljene_poteze(self):
-        return {koordinata for koordinata in self.koordinate if self.poteza_je_dovoljena(koordinata)}
+        return {
+            koordinata for koordinata in self.koordinate
+            if self.poteza_je_dovoljena(koordinata)
+            }
+
+    def pojej(self, grupa):
+        indeks = 0 if self.na_potezi() == CRNI else 1
+        for kamen in grupa.koordinate:
+            i, j = kamen
+            self.goban[i][j] = None
+            self.ujetniki[indeks] += 1
+            self.prazna_polja.add(kamen)
+        self.grupe.remove(grupa)
+        sosednje_grupe = {
+            self.najdi_grupo(sosed) for sosed in grupa.sosedje
+            if self.poglej(sosed) != None
+        }
+        for gr in sosednje_grupe:
+            gr.svobode |= gr.sosedje & grupa.koordinate
+
+    def postavi_kamen(self, poteza):
+        i, j = poteza
+        barva = self.na_potezi()
+        grupa = Grupa(barva, poteza, self)
+        sosednje_grupe = {
+            self.najdi_grupo(sosed) for sosed in self.sosedje(poteza)
+            if self.poglej(sosed) != None
+            }
+        igralceve = []
+        nasprotnikove = []
+        svobode = set()
+        for gr in sosednje_grupe:
+            if gr.barva == self.na_potezi():
+                igralceve.append(gr)
+                svobode |= gr.svobode
+                grupa.sosedje |= gr.sosedje
+            else:
+                nasprotnikove.append(gr)
+                if gr.svobode == {poteza}:
+                    self.pojej(gr)
+        grupa.svobode = {
+            sosed for sosed in grupa.sosedje
+            if self.poglej(sosed) == None
+            } | svobode
+        if igralceve == []:
+            assert len(grupa.svobode) > 0, "Poteza je samomor!"
+        else:
+            assert len(grupa.svobode) > 1, "Poteza je samomor!"
+            grupa.zdruzi_se(igralceve, poteza)
+        for gr in nasprotnikove:
+            gr.svobode.remove(poteza)
+        self.grupe.append(grupa)
+        self.goban[i][j] = barva
+        self.prazna_polja.remove(poteza)
 
     def igraj(self, poteza):
         if poteza == PASS:
@@ -230,28 +226,18 @@ class Go:
             ]), "Poteza je nevejlavne oblike. Biti mora številski dvojec."
             assert poteza in self.koordinate, f"Polje {poteza} je izven gobana!"
             assert self.poglej(poteza) == None, f"Polje {poteza} ni prazno!"
-            assert not self.poteza_je_samomor(poteza), 'Poteza je samomor!'
+            # assert not self.poteza_je_samomor(poteza), 'Poteza je samomor!'
             zorb = self.izracunaj_hash(poteza)
             assert zorb not in self.pretekla_stanja, 'Poteza krši pravilo ko!'
+            try:
+                self.postavi_kamen(poteza)
+            except AssertionError as e:
+                raise e
             self.predaja_poteze = False
             self.pretekla_stanja.append(self.hash)
             self.hash = zorb
-            sosednje_grupe = [
-                grupa for grupa in self.grupe if
-                grupa.barva == self.na_potezi() and
-                poteza in grupa.svobode
-                ]
-            for grupa in self.pojedene_grupe(poteza):
-                grupa.pojej()
-            if len(sosednje_grupe) == 0:
-                self.ustvari_novo_grupo(poteza)
-            elif len(sosednje_grupe) == 1:
-                sosednje_grupe[0].razsiri_se(poteza)
-            else:
-                sosednje_grupe[0].zdruzi_se(sosednje_grupe[1:], poteza)
             self.poteza += 1
             self.zadnja_poteza = poteza
-
 
     def tocka_je_robna(self, tocka):
         return set(tocka) & {0, self.velikost - 1} != set()
@@ -367,3 +353,34 @@ class Go:
             else:
                 crni += len(grupa.koordinate)
         return crni - crni_u + beli_u - beli - self.komi
+
+    def zmagovalec_na_potezi(self):
+        """Če je zmagovalec igralec na potezi,
+        vrne True, sicer vrne False."""
+        return (
+            (self.na_potezi() == CRNI and self.zmagovalec() > 0)
+            or
+            (self.na_potezi() == BELI and self.zmagovalec() < 0)
+        )
+        
+
+class Igre:
+
+    def __init__(self):
+        self.igre = {}
+
+    def doloci_id_igre(self):
+        if len(self.igre) == 0:
+            return 0
+        else:
+            return max(self.igre.keys()) + 1
+    
+    def nova_igra(self, velikost):
+        igra = Go(velikost)
+        id_igre = self.doloci_id_igre()
+        self.igre[id_igre] = igra
+        return id_igre
+
+    def igraj(self, id_igre, poteza):
+        self.igre[id_igre].igraj(poteza)
+        
