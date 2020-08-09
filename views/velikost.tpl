@@ -2,7 +2,6 @@
 
 <div class="flexbox_vert">
 
-
     <div class="pozdrav">
     </div>
 

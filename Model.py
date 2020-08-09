@@ -5,7 +5,6 @@ CRNI = 'X'
 BELI = 'O'
 PASS = 'P'
 PREDAJA = 'PR'
-NAPREJ = 'N'
 
 
 class Grupa:
@@ -31,19 +30,25 @@ class Go:
         assert velikost in {9, 13, 19}, f'Goban velikosti {velikost} ne obstaja!'
         self.velikost = velikost
         self.komi = komi
-        self.goban = [[None] * velikost for i in range(velikost)] # Igralno desko (goban) predstavimo s kvadratno matriko.
+        self.goban = [[None] * velikost for i in range(velikost)]
+        # Igralno desko (goban) predstavimo s kvadratno matriko.
         self.koordinate = {(i, j) for i in range(velikost) for j in range(velikost)}
         self.prazna_polja = {(i, j) for i in range(velikost) for j in range(velikost)}
         self.ujetniki = [0, 0] # pr1 je števec za bele ujetnike, pr2 pa za črne
         self.grupe = []
         self.poteza = 0
         self.zadnja_poteza = None
-        # Stanja na gobanu hashamo po Zorbistovi metodi. Hash tabela je velikost 2 * 361.
+        # Stanja na gobanu hashamo po Zorbistovi metodi. Hash tabela je velikost 2 * (velikost ** 2)
         self.hash_tabela = [[getrandbits(64), getrandbits(64)] for i in range(velikost) for j in range(velikost)]
         # Dodatno 64-bitno število nam bo povedalo, kdo je na potezi
         self.hash_tabela.append(getrandbits(64))
         self.hash = 0
         self.pretekla_stanja = [] # Seznam hash vrednosti preteklih stanj
+        self.poteze = []
+        # Atribut bo prišel prav za omogočanje 'undo'-ja
+        self.bot = None
+        # Atribut določimo v primeru igre proti računalniku. Glede na to,
+        # katere barve je bot, ima vrednost BELI ali CRNI.
         self.predaja_poteze = False
         self.konec = False
 
@@ -207,6 +212,13 @@ class Go:
         self.goban[i][j] = barva
         self.prazna_polja.remove(poteza)
 
+    def undo(self):
+        """Igro vrnemo v prejšnje stanje"""
+        kopija = Go(self.velikost)
+        for poteza in self.poteze[:-1]:
+            kopija.igraj(poteza)
+        return kopija
+
     def igraj(self, poteza):
         if poteza == PASS:
             self.poteza += 1
@@ -237,6 +249,7 @@ class Go:
             self.pretekla_stanja.append(self.hash)
             self.hash = zorb
             self.poteza += 1
+            self.poteze.append(poteza)
             self.zadnja_poteza = poteza
 
     def tocka_je_robna(self, tocka):
@@ -313,7 +326,8 @@ class Go:
         """Ko je ena grupa označena za mrtvo, so mrtve tudi vse ostale
         grupe, ki se nahajajo znotraj istega teritorija. Vrnemo seznam
         vseh takih grup. Vrne seznam, ki vsebuje originalno mrtvo grupo
-        in tudi vse najdene."""
+        in tudi vse najdene. Zadošča vnesti koordinato poljubnega kamna
+        v dani grupi."""
         barva = grupa.barva
         mrtve = [grupa]
         for svoboda in grupa.svobode:
@@ -362,7 +376,7 @@ class Go:
             or
             (self.na_potezi() == BELI and self.zmagovalec() < 0)
         )
-        
+
 
 class Igre:
 
@@ -379,7 +393,7 @@ class Igre:
         igra = Go(velikost)
         id_igre = self.doloci_id_igre()
         self.igre[id_igre] = igra
-        return id_igre
+        return id_igre, igra
 
     def igraj(self, id_igre, poteza):
         self.igre[id_igre].igraj(poteza)

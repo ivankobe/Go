@@ -1,3 +1,7 @@
+body {
+  font-family: 'monospace', 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif
+}
+
 .flexbox_vert {
     display: flex;
     flex-direction: column;
@@ -8,14 +12,38 @@
     background-color: #f8f8f8;
 }
 
+#flexbox_vert_igra > div {
+    flex: 1;
+}
+
+#flexbox_vert_igra_notranja {
+    justify-content: center;
+    border: none;
+}
+
 .flexbox_hor {
     display: flex;
     flex-direction: row;
     justify-content: left;
-    /* align-items: center; */
-    height: 98vh;
     border: 3px solid black;
     background-color: #f8f8f8;
+    height: 98vh;
+}
+
+#flexbox_hor_igra {
+    display: flex;
+    flex-direction: row;
+    justify-content: left;
+    align-items: center;
+    background-color: #f8f8f8;
+}
+
+.flexbox_hor > form {
+    flex: 1;
+}
+
+.flexbox_hor > div {
+    flex: 1;
 }
 
 #flexbox_velikost {
@@ -46,18 +74,264 @@
 
 .vrstica {
     display: flex;
-    border: 1px solid black;
     background-color: inherit;
     width: inherit;
 }
 
-.vrstica > div {
+.vrstica > form {
     flex: 1;
 }
 
 .polje {
-    border: 1px solid black;
+    background-color: #f8f8f8;
+    position: relative;
+    outline: none;
+    border: none;
+    margin: 0;
+	padding: 0;
+	font-size: 100%;
+	font-family: inherit;
+    vertical-align: baseline;
+    height: 100%;
+    width: 100%;
 }
+
+.prazno.sredina:before{
+    position: absolute;
+    left: 50%;
+    top: 0;
+    width: 1px;
+    background: #000000;
+    content: "";
+    height: 100%;
+    display: block;
+}
+
+.prazno.sredina:after{
+    position: absolute;
+    left: 0;
+    top: 50%;
+    width: 100%;
+    background: #000000;
+    content: "";
+    height: 1px;
+    display: block;
+}
+
+.prazno.zgoraj:not(.levo):not(.desno):before {
+    position: absolute;
+    left: 0;
+    top: 50%;
+    width: 100%;
+    background: #000000;
+    content: "";
+    height: 1px;
+    display: block;
+}
+
+.prazno.zgoraj:not(.levo):not(.desno):after {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 1px;
+    background: #000000;
+    content: "";
+    height: 50%;
+    display: block;
+}
+
+.prazno.spodaj:not(.levo):not(.desno):before {
+    position: absolute;
+    left: 0;
+    top: 50%;
+    width: 100%;
+    background: #000000;
+    content: "";
+    height: 1px;
+    display: block;
+}
+
+.prazno.spodaj:not(.levo):not(.desno):after {
+    position: absolute;
+    left: 50%;
+    top: 0;
+    width: 1px;
+    background: #000000;
+    content: "";
+    height: 50%;
+    display: block;
+}
+
+.prazno.levo:not(.zgoraj):not(.spodaj):before {
+    position: absolute;
+    left: 50%;
+    top: 0;
+    width: 1px;
+    background: #000000;
+    content: "";
+    height: 100%;
+    display: block; 
+}
+
+.prazno.levo:not(.zgoraj):not(.spodaj):after {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 50%;
+    background: #000000;
+    content: "";
+    height: 1px;
+    display: block; 
+}
+
+.prazno.desno:not(.zgoraj):not(.spodaj):before {
+    position: absolute;
+    left: 50%;
+    top: 0;
+    width: 1px;
+    background: #000000;
+    content: "";
+    height: 100%;
+    display: block; 
+}
+
+.prazno.desno:not(.zgoraj):not(.spodaj):after {
+    position: absolute;
+    left: 0;
+    top: 50%;
+    width: 50%;
+    background: #000000;
+    content: "";
+    height: 1px;
+    display: block; 
+}
+
+.prazno.zgoraj.levo:before {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 50%;
+    background: #000000;
+    content: "";
+    height: 1px;
+    display: block; 
+}
+
+.prazno.zgoraj.levo:after {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 1px;
+    background: #000000;
+    content: "";
+    height: 50%;
+    display: block; 
+}
+
+.prazno.zgoraj.desno:before {
+    position: absolute;
+    left: 0;
+    top: 50%;
+    width: 50%;
+    background: #000000;
+    content: "";
+    height: 1px;
+    display: block; 
+}
+
+.prazno.zgoraj.desno:after {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 1px;
+    background: #000000;
+    content: "";
+    height: 50%;
+    display: block; 
+}
+
+.prazno.spodaj.levo:before {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 50%;
+    background: #000000;
+    content: "";
+    height: 1px;
+    display: block; 
+}
+
+.prazno.spodaj.levo:after {
+    position: absolute;
+    left: 50%;
+    top: 0;
+    width: 1px;
+    background: #000000;
+    content: "";
+    height: 50%;
+    display: block; 
+}
+
+.spodaj.desno:before {
+    position: absolute;
+    left: 0;
+    top: 50%;
+    width: 50%;
+    background: #000000;
+    content: "";
+    height: 1px;
+    display: block; 
+}
+
+.prazno.spodaj.desno:after {
+    position: absolute;
+    left: 50%;
+    top: 0;
+    width: 1px;
+    background: #000000;
+    content: "";
+    height: 50%;
+    display: block; 
+}
+
+.crni {
+    background-color: black;
+    border: 1px solid black;
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+.beli {
+    background: white;
+    border: 1px solid black;
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+.samomor {
+    pointer-events: none;
+}
+
+.ko {
+    pointer-events: none;
+    border: 5px solid black    
+}
+
+.na_potezi_beli:hover {
+    background: white;
+    border: 1px solid black;
+    border-radius: 50%;
+}
+
+.na_potezi_crni:hover {
+    background-color: black;
+    border: 1px solid black;
+    border-radius: 50%;
+}
+
+/* .konec {
+    pointer-events: none;
+} */
 
 .pozdrav {
     height: 90px;
@@ -106,6 +380,15 @@
     border: 2px solid black;
     color: black;
     margin: 3vw;
+}
+
+.button_igra {
+    font-size: 200%;
+    border: 2px solid black;
+    color: black;
+    margin: 2vw; 
+    height: 8vw;
+    width: 8vw;
 }
 
 button:hover {

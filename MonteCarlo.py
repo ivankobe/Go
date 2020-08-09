@@ -29,6 +29,7 @@ class Vozel:
         # tako da je pr1(x) množica vseh že raziskanih potomcev (se pravi vozlov), pr2(x) pa
         # množica vseh dovoljenih potez v poziciji, ki jo predstavlja dani vozel.
 
+
     def zabelezi_rezultat(self, rezultat):
         """Sebi, kot tudi vsem vozlom, ki so nad njim, poveča število simulacij
         za ena, v primeru, da je zmagovalec simulirane igre igralec na potezi,
@@ -82,6 +83,20 @@ class MonteCarlo:
         self.stanje = Vozel(self)
         self.cas = cas
 
+    def potomec_poteza(self, poteza):
+        """Vrne potomca, ki predstavlja pozicijo, v katero
+        pelje dana poteza. Če poteza ni dovoljena, vrne None"""
+        # Najprej preverimo, ali iskani vozel že obstaja
+        for vozel in self.vozli[self.stanje][0]:
+            if vozel.poteza == poteza:
+                return vozel
+        # V nasprotnem primeru preverimo, ali je poteza dovoljena
+        if poteza in self.vozli[self.stanje][1]:
+            potomec = Vozel(self, poteza, self.stanje)
+            return potomec
+        else:
+            return
+
     def ucb1(self, vozel):
         """V primeru, da za vsako dovoljeno potezo že obstaja
         ustrezen vozel, funkcija ucb1 izbere enega izmed potomcev."""
@@ -122,6 +137,7 @@ class MonteCarlo:
             if najboljsa(najboljsi_potomec) < 0.1:
                 return Model.PREDAJA
             else:
+                self.stanje = najboljsi_potomec
                 return najboljsi_potomec
 
 
