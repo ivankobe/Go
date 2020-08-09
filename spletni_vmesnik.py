@@ -43,14 +43,13 @@ def velikost():
 @bottle.post("/<n:int>/")
 def st(n):
     id_igre, igra = igre.nova_igra(n)
-    simulacije[0] = 1
+    if bottle.request.get_cookie("nacin_igre") == "pvb":
+        igra.bot = choice([Model.BELI, Model.CRNI])
+        # Barvo izberemo naključno
+        mc = MonteCarlo.MonteCarlo(igra)
+        simulacije[id_igre] = mc
     cookie = str(n)
     id_igre = str(id_igre)
-    # id_igre = str(id_igre)
-    # if bottle.request.get_cookie("nacin_igre") == "pvb":
-    #     igra.bot = choice([Model.BELI, Model.CRNI])
-    #     # Barvo izberemo naključno
-    #     simulacije[id_igre] = MonteCarlo.MonteCarlo(igra)
     if bottle.request.get_cookie("velikost") == None:
         bottle.response.set_cookie("velikost", cookie, path="/")
     if bottle.request.get_cookie("id_igre") == None:
@@ -64,11 +63,10 @@ def igra():
     id_igre = int(bottle.request.get_cookie("id_igre"))
     velikost = int(bottle.request.get_cookie("velikost"))
     igra = igre.igre[id_igre]
-    # if igra.bot == igra.na_potezi():
-    #     mc = simulacije[id_igre]
-    #     poteza = mc.najboljsa_poteza().poteza
-    #     mc.stanje = mc.potomec_poteza(poteza)
-    #     igra.igraj(poteza)
+    if igra.bot == igra.na_potezi():
+        mc = simulacije[id_igre]
+        poteza = mc.najboljsa_poteza().poteza
+        igra.igraj(poteza)
     return bottle.template(
         "views/igra.tpl",
         id_igre=id_igre,
@@ -93,7 +91,7 @@ def igra_poteza(i ,j):
 
 @bottle.post("/igra/pass/")
 def passs():
-    id_igre = bottle.request.get_cookie("id_igre")
+    id_igre = int(bottle.request.get_cookie("id_igre"))
     igra = igre.igre[id_igre]
     igra.igraj(Model.PASS)
     bottle.redirect("/igra/")
@@ -101,7 +99,7 @@ def passs():
 
 @bottle.post("/igra/resign/")
 def resign():
-    id_igre = bottle.request.get_cookie("id_igre")
+    id_igre = int(bottle.request.get_cookie("id_igre"))
     igra = igre.igre[id_igre]
     igra.igraj(Model.PREDAJA)
     bottle.redirect("/igra/")
@@ -109,7 +107,7 @@ def resign():
 
 @bottle.post("/igra/undo/")
 def undo():
-    id_igre = bottle.request.get_cookie("id_igre")
+    id_igre = int(bottle.request.get_cookie("id_igre"))
     igra = igre.igre[id_igre]
     igre.igre[id_igre] = igra.undo()
     # Zamenjamo vrednost ključa, saj funkcija
