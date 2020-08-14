@@ -17,18 +17,23 @@ class Vozel:
         self.stevilo_simulacij = 0
         self.stevilo_zmag = 0
         if parent == None:
-            self.igra = Model.Go(self.mc.velikost) # Vsak vozel ima svojo kopijo igre
+            self.barva = None
+            # Barva vozla je barva zadnjega odigranega kamna
+            self.igra = Model.Go(self.mc.velikost)
+            # Vsak vozel ima svojo kopijo igre
         else:
+            if parent.barva == Model.CRNI:
+                self.barva = Model.BELI
+            else:
+                self.barva = Model.CRNI
             self.mc.vozli[self.parent][0].add(self)
             self.igra = deepcopy(self.parent.igra)
             self.igra.igraj(poteza)
-        self.barva = self.igra.na_potezi()
         for poteza in self.igra.dovoljene_poteze():
             self.mc.vozli[self][1].add(poteza)
         # mc.vozli je torej slovar, katerega ključi so vozli, njigove vrednosti pa so dvojice x,
         # tako da je pr1(x) množica vseh že raziskanih potomcev (se pravi vozlov), pr2(x) pa
         # množica vseh dovoljenih potez v poziciji, ki jo predstavlja dani vozel.
-
 
     def zabelezi_rezultat(self, rezultat):
         """Sebi, kot tudi vsem vozlom, ki so nad njim, poveča število simulacij
@@ -45,6 +50,7 @@ class Vozel:
             else:
                 vozel = vozel.parent
             
+
     def simuliraj_igro(self):
             """Iz pozicije, predstavljene z danim vozlom,
             odigramo naključno igro. Vrnemo rezultat."""
@@ -74,14 +80,16 @@ class MonteCarlo:
 
     # Iskalno drevo
 
-    def __init__(self, igra, cas=5):
+    def __init__(self, igra):
         # Drugi argument je maksimalni čas, ki
         # si ga računalnik lahko vzame za potezo.
         self.igra = igra
         self.velikost = self.igra.velikost
         self.vozli = {}
         self.stanje = Vozel(self)
-        self.cas = cas
+        self.cas = 3
+        # Število sekund, ki si jih računalnik
+        # vzame za premislek za izbiro poteze
 
     def potomec_poteza(self, poteza):
         """Vrne potomca, ki predstavlja pozicijo, v katero
@@ -114,7 +122,7 @@ class MonteCarlo:
         """Za  pozicijo aproksimira najboljšo potezo in jo vrne."""
         stanje = self.stanje
         zacetek = time()
-        if len(self.vozli[self.stanje][1]) == 0:
+        if len(self.vozli[stanje][1]) == 0:
             # Če ni dovoljenih potez, se odrečemo potezi
             return Model.PASS
         elif self.igra.zadnja_poteza == Model.PASS and self.igra.zmagovalec_na_potezi():
@@ -137,12 +145,6 @@ class MonteCarlo:
             if najboljsa(najboljsi_potomec) < 0.1:
                 return Model.PREDAJA
             else:
-                self.stanje = najboljsi_potomec
-                return najboljsi_potomec
+                self.stanje = najboljsi_potomec # Posodobimo stanje
+                return najboljsi_potomec.poteza
 
-
-go = Model.Go(9)
-mc = MonteCarlo(go)
-n = time()
-(mc.stanje).simuliraj_igro()
-print(time() - n)

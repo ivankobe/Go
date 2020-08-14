@@ -1,6 +1,7 @@
 import Model
 import MonteCarlo
 import bottle
+import threading
 from random import choice
 
 
@@ -65,7 +66,7 @@ def igra():
     igra = igre.igre[id_igre]
     if igra.bot == igra.na_potezi():
         mc = simulacije[id_igre]
-        poteza = mc.najboljsa_poteza().poteza
+        poteza = mc.najboljsa_poteza()
         igra.igraj(poteza)
     return bottle.template(
         "views/igra.tpl",
@@ -82,10 +83,17 @@ def igra_poteza(i ,j):
     id_igre = int(bottle.request.get_cookie("id_igre"))
     nacin = bottle.request.get_cookie("nacin_igre")
     igra = igre.igre[id_igre]
-    igra.igraj(poteza)
-    # if nacin == "pvb":
-    #     mc = simulacije[id_igre]
-    #     mc.stanje = mc.potomec_poteza(poteza)
+    if not igra.konec:
+    # Dokler je igra aktivna, je to ukaz za igranje poteze
+        igra.igraj(poteza)
+        if nacin == "pvb":
+            mc = simulacije[id_igre]
+            mc.stanje = mc.potomec_poteza(poteza)
+    else:
+    # Sicer je klic strani ukaz za odstranjitev mrtvih kamnov
+        mrtve = igra.najdi_vse_mrtve({(i, j)})
+        for mrtva in mrtve:
+            igra.odstrani_mrtvo_grupo(mrtva)
     bottle.redirect("/igra/")
 
 
@@ -108,11 +116,34 @@ def resign():
 @bottle.post("/igra/undo/")
 def undo():
     id_igre = int(bottle.request.get_cookie("id_igre"))
-    igra = igre.igre[id_igre]
-    igre.igre[id_igre] = igra.undo()
+    nacin = bottle.request.get_cookie("nacin_igre")
+    igre.igre[id_igre] = igre.igre[id_igre].undo()
     # Zamenjamo vrednost ključa, saj funkcija
     # 'undo' vrne novo instanco razreda 'Go'
+    simulacije[id_igre].stanje = simulacije[id_igre].stanje.parent 
+    # Prilagodimo stanje iskalnega drevesa
+    if nacin == "pvb":
+        igre.igre[id_igre] = igre.igre[id_igre].undo()
+        simulacije[id_igre].stanje = simulacije[id_igre].stanje.parent 
+        # Če gre za igro proti računalniku,
+        # je treba nazaj vzeti dve potezi
     bottle.redirect("/igra/")    
+
+
+@bottle.post("/igra/konec/")
+def konec():
+    id_igre = int(bottle.request.get_cookie("id_igre"))
+    igra = igre.igre[id_igre]
+    igra.konec_konca = True
+    bottle.redirect("/igra/")    
+
+
+@bottle.post("/nova_igra/")
+def nova_igra():
+    bottle.response.set_cookie("nacin_igre", '', expires=0, path="/")
+    bottle.response.set_cookie("velikost", '', expires=0, path="/")
+    bottle.response.set_cookie("id_igre", '', expires=0, path="/")
+    bottle.redirect("/")
 
 
 bottle.run(reloader=True, debug=True)

@@ -25,6 +25,7 @@
 %             razred += "sredina "
 % end
 
+
 % # določanje css razreda za pozicijo in nedovoljene poteze
 
 % polje = igra.poglej((i, j))
@@ -42,17 +43,23 @@
 % end
 
 
-% if igra.na_potezi() == Model.BELI:
-%     razred += "na_potezi_beli"
-% else:
-%     razred += "na_potezi_crni"
+% if not igra.konec:
+%     if igra.na_potezi() == Model.BELI:
+%         razred += "na_potezi_beli "
+%     else:
+%         razred += "na_potezi_crni "
 % end
-
+% end
 
 
 % if igra.konec:
 %     razred += "konec "
 % end
+
+% if (i, j) == igra.zadnja_poteza:
+%     razred+= "zadnja "
+% end
+
 
 % razred = "'" + razred + "'"
 
@@ -68,7 +75,8 @@
 
 
     <div class="flexbox_vert" id="flexbox_vert_igra">
-        
+
+% if not igra.konec_konca:
 % if not igra.konec:
         
         <div class="flexbox_vert" id="flexbox_vert_igra_notranja">
@@ -96,11 +104,42 @@
         </div>
 
 % else:
-            
-            <h1>konec</h1>
+, komi=7.5
+        <div class="flexbox_vert" id="flexbox_vert_igra_notranja">
+        
+            <h2>Označi mrtve kamne!</h2>
+        
+        </div>
+
+
+        <div id="flexbox_hor_igra">
+
+            <form action="/igra/konec/" method="POST">
+                <button class="button_igra">KONEC</button>
+            </form>
+        
+        </div>
             
 % end
+% else:
+% rezultat = igra.zmagovalec()
+% zmagovalec = "črni" if rezultat > 0 else "beli"
 
+    <div class="flexbox_vert" id="flexbox_vert_igra_notranja">
+
+        <h1>Zmagal je {{zmagovalec}} za {{abs(rezultat)}} točk razlike.</h1>
+
+    </div>
+
+    <div id="flexbox_hor_igra">
+
+        <form action="/nova_igra/" method="POST">
+            <button class="button_igra">NOVA</button>
+        </form>
+    
+    </div>
+
+% end
        
     </div>
 

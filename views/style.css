@@ -294,17 +294,35 @@ body {
     display: block; 
 }
 
-.crni {
+.crni:not(.zadnja) {
     background-color: black;
     border: 1px solid black;
     border-radius: 50%;
-    pointer-events: none;
 }
 
-.beli {
+.crni.zadnja {
+    background-color: black;
+    border-radius: 50%;
+    box-shadow: inset 0px 0px 0px 3px red;
+}
+
+.beli:not(.zadnja) {
     background: white;
     border: 1px solid black;
     border-radius: 50%;
+}
+
+.beli.zadnja {
+    background: white;
+    border-radius: 50%;
+    box-shadow: inset 0px 0px 0px 3px red;
+}
+
+.beli:not(.konec) {
+    pointer-events: none;
+}
+
+.crni:not(.konec) {
     pointer-events: none;
 }
 
@@ -329,9 +347,9 @@ body {
     border-radius: 50%;
 }
 
-/* .konec {
+.konec:not(.crni):not(.beli) {
     pointer-events: none;
-} */
+}
 
 .pozdrav {
     height: 90px;

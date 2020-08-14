@@ -1,6 +1,7 @@
 from random import randrange, getrandbits, shuffle, choice
 from copy import deepcopy
 
+
 CRNI = 'X'
 BELI = 'O'
 PASS = 'P'
@@ -11,13 +12,14 @@ class Grupa:
 
     def __init__(self, barva, koordinata, go):
         self.barva = barva
-        self.koordinate = {koordinata} # Ko je grupa ustvarjena, je najprej vedno dolžine 1
+        self.koordinate = {koordinata}
         self.igra = go
         self.sosedje = self.igra.sosedje(koordinata)
         
     def zdruzi_se(self, others, koordinata):
         """Združita se lahko več kot dve grupi naenkrat,
-        zato bo drugi argument seznam množic."""
+        zato bo drugi argument seznam množic.
+        """
         for other in others:
             self.koordinate |= other.koordinate
             self.svobode -= {koordinata}
@@ -26,10 +28,10 @@ class Grupa:
 
 class Go:
     
-    def __init__(self, velikost=19, komi=7.5):
+    def __init__(self, velikost=19):
         assert velikost in {9, 13, 19}, f'Goban velikosti {velikost} ne obstaja!'
         self.velikost = velikost
-        self.komi = komi
+        self.komi = 6.5
         self.goban = [[None] * velikost for i in range(velikost)]
         # Igralno desko (goban) predstavimo s kvadratno matriko.
         self.koordinate = {(i, j) for i in range(velikost) for j in range(velikost)}
@@ -51,6 +53,8 @@ class Go:
         # katere barve je bot, ima vrednost BELI ali CRNI.
         self.predaja_poteze = False
         self.konec = False
+        self.konec_konca = False
+        # Relevantno zgolj za spletno različico
 
     def __str__(self):
         niz = ''
@@ -212,13 +216,6 @@ class Go:
         self.goban[i][j] = barva
         self.prazna_polja.remove(poteza)
 
-    def undo(self):
-        """Igro vrnemo v prejšnje stanje"""
-        kopija = Go(self.velikost)
-        for poteza in self.poteze[:-1]:
-            kopija.igraj(poteza)
-        return kopija
-
     def igraj(self, poteza):
         if poteza == PASS:
             self.poteza += 1
@@ -229,6 +226,7 @@ class Go:
                 self.predaja_poteze = True
         elif poteza == PREDAJA:
             self.konec = True
+            self.zadnja_poteza = poteza
         else:
             assert all([
                 type(poteza) == tuple,
@@ -315,19 +313,20 @@ class Go:
         indeks = 0 if grupa.barva == BELI else 1
         for kamen in grupa.koordinate:
             i, j = kamen
-            # Add empty point hash code.
             self.goban[i][j] = None
             self.prazna_polja.add(kamen)
             self.ujetniki[indeks] += 1
             # S posodabljanjem ostalih atributov se nam ni treba ukvarjati.
         return None
 
-    def najdi_vse_mrtve(self, grupa):
+    def najdi_vse_mrtve(self, gr):
         """Ko je ena grupa označena za mrtvo, so mrtve tudi vse ostale
         grupe, ki se nahajajo znotraj istega teritorija. Vrnemo seznam
         vseh takih grup. Vrne seznam, ki vsebuje originalno mrtvo grupo
-        in tudi vse najdene. Zadošča vnesti koordinato poljubnega kamna
-        v dani grupi."""
+        in tudi vse najdene. Argument mora biti podmnožica množice
+        koordinat dane grupe."""
+        kamen = next(iter(gr))
+        grupa = self.najdi_grupo(kamen)
         barva = grupa.barva
         mrtve = [grupa]
         for svoboda in grupa.svobode:
@@ -344,7 +343,6 @@ class Go:
         """Vrne par x, tako da je pr1(x) število presečišč v teritorjiju
         črnega, pr2(x) pa v teritoriju belega. Množica mrtve_grupe je unija
         poljubnih podmnožic množic koordinat mrtvih grup."""
-        assert self.konec, 'Igre še ni konec, zato ne moremo prešteti teritorija!'
         prazna_polja = {polje for polje in self.koordinate if self.poglej(polje) == None}
         crni, beli = 0, 0
         while len(prazna_polja) > 0:
@@ -376,6 +374,14 @@ class Go:
             or
             (self.na_potezi() == BELI and self.zmagovalec() < 0)
         )
+
+    def undo(self):
+        """Igro vrnemo v prejšnje stanje"""
+        kopija = Go(self.velikost)
+        for poteza in self.poteze[:-1]:
+            kopija.igraj(poteza)
+        kopija.bot = self.bot
+        return kopija    
 
 
 class Igre:

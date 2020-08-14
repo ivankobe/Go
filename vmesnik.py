@@ -116,17 +116,15 @@ def pvp():
             except AssertionError as e:
                 print(e)
                 print('')
-    kopija = deepcopy(igra)
-    # Za primer, če se igralca premislita in igro še nadaljujeta, naredimo kopijo.
     while True:
         mrtve = doloci_mrtve(igra)
         if mrtve == None:
             break
         else:
             for mrtva in mrtve:
-                kopija.odstrani_mrtvo_grupo(mrtva)
-        print(izpis_delnega_rezultata(kopija))
-    print(izpis_koncnega_rezultata(kopija))
+                igra.odstrani_mrtvo_grupo(mrtva)
+        print(izpis_delnega_rezultata(igra))
+    print(izpis_koncnega_rezultata(igra))
 
 
 # Zdaj s pomočnjo modula threading definiramo pomožne funkcije,
@@ -181,13 +179,15 @@ def pvb(cas=5):
                 poteza = tuhtaj_dokler_igralec_ne_vnese_poteze(mc)
                 try:
                     igra.igraj(poteza)
+                    mc.stanje = mc.potomec_poteza(poteza)
                     break
                 except AssertionError as e:
                     print(e)
                     print('')
         else:
-            poteza = mc.najboljsa_poteza().poteza
+            poteza = mc.najboljsa_poteza()
             igra.igraj(poteza)
+            mc.stanje = mc.potomec_poteza(poteza)
         # Zdaj posodobimo še iskalno drevo
         stikalo = True
         for vozel in mc.vozli[mc.stanje][0]: # Pogledamo, ali vozel za novonastalo pozicijo že obstaja
