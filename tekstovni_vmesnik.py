@@ -78,8 +78,7 @@ def izpis_igre(go):
         f"""Na potezi: {go.na_potezi()}
         Beli ujetniki: {go.ujetniki[0]}
         Črni ujetniki: {go.ujetniki[1]}
-        Zadnja poteza: {(lambda x: '' if x == None else x)(go.zadnja_poteza)}
-        Za navodila vpiši 'help'.\n\n
+        Zadnja poteza: {(lambda x: '' if x == None else x)(go.zadnja_poteza)}\n\n
         {go.__str__()}"""
     ).replace("        ","")
     return niz

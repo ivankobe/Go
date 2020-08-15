@@ -144,4 +144,6 @@ def nova_igra():
     bottle.redirect("/")
 
 
-bottle.run(reloader=True, debug=True)
+
+if __name__ == "__main__":
+    bottle.run(reloader=True, debug=True)
