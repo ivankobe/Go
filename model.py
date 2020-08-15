@@ -28,7 +28,7 @@ class Go:
     def __init__(self, velikost=19):
         assert velikost in {9, 13, 19}, f'Goban velikosti {velikost} ne obstaja!'
         self.velikost = velikost
-        self.komi = 6.5
+        self.komi = 7.5
         # Igralno desko (goban) predstavimo s kvadratno matriko.
         self.goban = [[None] * velikost for i in range(velikost)]
         self.koordinate = {(i, j) for i in range(velikost) for j in range(velikost)}
