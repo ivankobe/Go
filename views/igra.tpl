@@ -1,5 +1,5 @@
 % rebase("base.tpl")
-% import Model 
+% import model 
 
 <div class="flexbox_hor">
 
@@ -8,7 +8,6 @@
 % for i in range(velikost):
         <div class="vrstica">
 
-% # določanje css razreda za izris gobana
 %     for j in range(velikost):
 %         razred = "polje "
 %         if i == 0:
@@ -26,12 +25,10 @@
 % end
 
 
-% # določanje css razreda za pozicijo in nedovoljene poteze
-
 % polje = igra.poglej((i, j))
-% if polje == Model.CRNI:
+% if polje == model.CRNI:
 %     razred += "crni "
-% elif polje == Model.BELI:
+% elif polje == model.BELI:
 %     razred += "beli "
 % else:
 %     razred += "prazno "
@@ -44,7 +41,7 @@
 
 
 % if not igra.konec:
-%     if igra.na_potezi() == Model.BELI:
+%     if igra.na_potezi() == model.BELI:
 %         razred += "na_potezi_beli "
 %     else:
 %         razred += "na_potezi_crni "
@@ -104,7 +101,7 @@
         </div>
 
 % else:
-, komi=7.5
+
         <div class="flexbox_vert" id="flexbox_vert_igra_notranja">
         
             <h2>Označi mrtve kamne!</h2>

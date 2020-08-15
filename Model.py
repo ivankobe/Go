@@ -1,5 +1,4 @@
-from random import randrange, getrandbits, shuffle, choice
-from copy import deepcopy
+import random
 
 
 CRNI = 'X'
@@ -17,9 +16,7 @@ class Grupa:
         self.sosedje = self.igra.sosedje(koordinata)
         
     def zdruzi_se(self, others, koordinata):
-        """Združita se lahko več kot dve grupi naenkrat,
-        zato bo drugi argument seznam množic.
-        """
+        """Drugi argument je seznam množic."""
         for other in others:
             self.koordinate |= other.koordinate
             self.svobode -= {koordinata}
@@ -32,29 +29,36 @@ class Go:
         assert velikost in {9, 13, 19}, f'Goban velikosti {velikost} ne obstaja!'
         self.velikost = velikost
         self.komi = 6.5
-        self.goban = [[None] * velikost for i in range(velikost)]
         # Igralno desko (goban) predstavimo s kvadratno matriko.
+        self.goban = [[None] * velikost for i in range(velikost)]
         self.koordinate = {(i, j) for i in range(velikost) for j in range(velikost)}
         self.prazna_polja = {(i, j) for i in range(velikost) for j in range(velikost)}
-        self.ujetniki = [0, 0] # pr1 je števec za bele ujetnike, pr2 pa za črne
+        # pr1(self.ujetniki) je števec za bele ujetnike,
+        # pr2(self.ujetniki) za črne.
+        self.ujetniki = [0, 0]
         self.grupe = []
         self.poteza = 0
         self.zadnja_poteza = None
-        # Stanja na gobanu hashamo po Zorbistovi metodi. Hash tabela je velikost 2 * (velikost ** 2)
-        self.hash_tabela = [[getrandbits(64), getrandbits(64)] for i in range(velikost) for j in range(velikost)]
-        # Dodatno 64-bitno število nam bo povedalo, kdo je na potezi
-        self.hash_tabela.append(getrandbits(64))
+        # Stanja na gobanu hashamo po Zorbistovi metodi.
+        self.hash_tabela = [
+            [random.getrandbits(64), random.getrandbits(64)]
+            for i in range(velikost)
+            for j in range(velikost)
+            ]
+        # Dodatno 64-bitno število nam bo povedalo, kdo je na potezi.
+        self.hash_tabela.append(random.getrandbits(64))
         self.hash = 0
-        self.pretekla_stanja = [] # Seznam hash vrednosti preteklih stanj
+        # Atrubzt pretekla_stanja je seznam hash vrednosti preteklih stanj
+        self.pretekla_stanja = []
+        # Atribut poteze bo prišel prav za omogočanje 'undo'-ja.
         self.poteze = []
-        # Atribut bo prišel prav za omogočanje 'undo'-ja
+        # Atribut bot določimo v primeru igre proti računalniku.
+        # Glede na to, katere barve je bot, ima vrednost BELI ali CRNI.
         self.bot = None
-        # Atribut določimo v primeru igre proti računalniku. Glede na to,
-        # katere barve je bot, ima vrednost BELI ali CRNI.
         self.predaja_poteze = False
         self.konec = False
-        self.konec_konca = False
-        # Relevantno zgolj za spletno različico
+        self.konec_konca = False     # Relevantno zgolj za spletno različico
+
 
     def __str__(self):
         niz = ''
@@ -77,11 +81,17 @@ class Go:
 
     def sosedje(self, koordinata):
         i, j = koordinata
-        return {(i + 1, j), (i, j + 1), (i - 1, j), (i, j - 1)} & self.koordinate
+        return (
+            {(i + 1, j), (i, j + 1), (i - 1, j), (i, j - 1)}
+            & self.koordinate
+            )
 
     def diagonalni_sosedje(self, koordinata):
         i, j = koordinata
-        return {(i + 1, j + 1), (i + 1, j - 1), (i - 1, j + 1), (i - 1, j - 1)} & self.koordinate
+        return (
+            {(i + 1, j + 1), (i + 1, j - 1), (i - 1, j + 1), (i - 1, j - 1)}
+            & self.koordinate
+            )
 
     def na_potezi(self):
         if self.poteza % 2 == 0:
@@ -113,8 +123,7 @@ class Go:
             ]
 
     def poteza_je_samomor(self, koordinata):
-        """Poteze, katerih posledica bi bila, da bi dana grupa
-        igralca na potezi ostale brez svobod, so prepovedane."""
+
         if None in {self.poglej(sosed) for sosed in self.sosedje(koordinata)}:
             return False
         za_pojesti = self.pojedene_grupe(koordinata)
@@ -124,33 +133,32 @@ class Go:
             grupa for grupa in self.grupe if
             grupa.barva == self.na_potezi() and
             koordinata in grupa.svobode
-            ]
-        # Seznam grup, katerih del bi postal odigran kamen
+            ]        # Seznam grup, katerih del bi postal odigran kamen
         svobode = set()
         for grupa in sosednje_grupe:
             for svoboda in grupa.svobode:
                 svobode.add(svoboda)
         return len(svobode) <= 1 
-        # Če sosednjih grup ni, je poteza samomor natanko tedaj, ko je len(svobode) == 0,
-        # sicer pa natanko tedaj, ko je len(svobode) == 1. 
+        # Če sosednjih grup ni, je poteza samomor natanko tedaj, ko velja
+        # len(svobode) == 0, sicer pa natanko tedaj, ko velja len(svobode) == 1. 
 
     def izracunaj_hash(self, poteza):
-        """Birokracija okoli hashanja. Apliciramo hash za postavljeni kamen,
-        za to, kdo je na potezi, in tudi za morebitne pojedene grupe."""
+
         i, j = poteza
         zorb = self.hash
         indeks = 0 if self.na_potezi() == CRNI else 1
+        # Apliciramo hash za postavljeni kamen:
         zorb ^= self.hash_tabela[i * self.velikost + j][indeks]
+        # Nato še za pojedene grupe:
         for grupa in self.pojedene_grupe(poteza):
             for kamen in grupa.koordinate:
                 k, l = kamen
-                zorb ^= self.hash_tabela[k * self.velikost + l][indeks ^ 1] # Vrednost indeks je 0 ali 1, XOR pa jo ravno obrne.
+                zorb ^= self.hash_tabela[k * self.velikost + l][indeks ^ 1]
+        # Nazadnje tudi za to, kdo je na potezi:
         zorb ^= self.hash_tabela[-1]
         return zorb
 
     def poteza_krsi_ko(self, poteza):
-        """Ko je pravilo, ki prepoveduje poteze, ki bi rezultirale v
-        kateri izmed pozicij, ki so tekom dane igre že bile odigrane."""
         return self.izracunaj_hash(poteza) in self.pretekla_stanja
 
     def poteza_je_dovoljena(self, poteza):
@@ -177,7 +185,7 @@ class Go:
         sosednje_grupe = {
             self.najdi_grupo(sosed) for sosed in grupa.sosedje
             if self.poglej(sosed) != None
-        }
+            }
         for gr in sosednje_grupe:
             gr.svobode |= gr.sosedje & grupa.koordinate
 
@@ -186,7 +194,8 @@ class Go:
         barva = self.na_potezi()
         grupa = Grupa(barva, poteza, self)
         sosednje_grupe = {
-            self.najdi_grupo(sosed) for sosed in self.sosedje(poteza)
+            self.najdi_grupo(sosed)
+            for sosed in self.sosedje(poteza)
             if self.poglej(sosed) != None
             }
         igralceve = []
@@ -254,22 +263,32 @@ class Go:
         return set(tocka) & {0, self.velikost - 1} != set()
 
     def tocka_je_oko(self, tocka):
-        """Ker bomo kasneje simulirali igre, se moramo prepričati, da se bodo te igre končale.
-        To dosežemo tako, da prepovemo poteze, s katerimi bi igralec zapolnjeval lastna očesa.
-        Uporabljena definicija očesa ni povsem natančna, a je za naše potrebe dovolj dobra."""
+        """Določi, ali je dana točka 'oko'.
+        
+        Ker bomo kasneje simulirali igre, se moramo prepričati, da se bodo
+        te igre končale. To dosežemo tako, da prepovemo poteze, s katerimi
+        bi igralec zapolnjeval lastna očesa. Uporabljena definicija očesa ni
+        povsem natančna, a je za naše potrebe dovolj dobra.
+        """
+        P = self.poglej(tocka) == None
         if not self.tocka_je_robna(tocka):
-            return all([
-                self.poglej(tocka) == None,
-                [self.poglej(sosed) for sosed in self.sosedje(tocka)].count(self.na_potezi()) == 4,
-                [self.poglej(sosed) for sosed in self.diagonalni_sosedje(tocka)].count(self.na_potezi()) >= 3
-                ])
+            Q = [
+                self.poglej(sosed)
+                for sosed in self.sosedje(tocka)
+                ].count(self.na_potezi()) == 4
+            R = [
+                self.poglej(sosed)
+                for sosed in self.diagonalni_sosedje(tocka)
+                ].count(self.na_potezi()) >= 3
+            return P and Q and R
         else:
-            return all([
-                self.poglej(tocka) == None,
-                {self.poglej(sosed) for sosed in self.sosedje(tocka) | self.diagonalni_sosedje(tocka)} == {self.na_potezi()}
-                ])
+            S = {
+                self.poglej(sosed)
+                for sosed in (self.sosedje(tocka) | self.diagonalni_sosedje(tocka))
+                } == {self.na_potezi()}
+            return P and S
     
-    # V nadaljevanju definiramo metode za evalvacijo končnih pozicij. Ob
+    # V nadaljevanju definiramo metode za evalvacijo končnih pozicij.  Ob
     # tem predpostavljamo, da v končni poziciji na gobanu ni mrtvih kamnov.
 
     def isci_med_sosedi(self, presecisce, ze_najdeni={}):
@@ -286,9 +305,11 @@ class Go:
         return najdeni
 
     def poisci_teritorij(self, koordinata):
-        """Poišče slkenjene skupine praznih polj. Vrne par x, tako da je
-        pr1(x) množica polj teritorija, pr2(x) pa bodisi barva igralca,
-        ki obkroža najdeni teritorij, bodisi None."""
+        """Poišče slkenjene skupine praznih polj.
+        
+        Vrne par x, tako da je pr1(x) množica polj teritorija, pr2(x) pa
+        bodisi barva igralca, ki obkroža najdeni teritorij, bodisi None.
+        """
         teritorij = {koordinata}
         novi = {koordinata}
         zid = {self.poglej(sosed) for sosed in self.sosedje(koordinata)}
@@ -307,24 +328,27 @@ class Go:
         else:
             return teritorij, None
 
+    # Zdaj definiramo še nekaj pomožnih funkcij za zaključek igre.
+    # Igralcu/igralcema bodo omogočile, da mrtve grupe po koncu igre
+    # preprosto poklikata, namesto da bi morala vse dejansko pojesti.
+
     def odstrani_mrtvo_grupo(self, grupa):
-        """Pomožna funkcija za zaključek igre in evaluacijo teritorija. Tako
-        igralcema med igro ne bo treba nujno pojesti vseh mrtvih kamnov."""
         indeks = 0 if grupa.barva == BELI else 1
         for kamen in grupa.koordinate:
             i, j = kamen
             self.goban[i][j] = None
             self.prazna_polja.add(kamen)
             self.ujetniki[indeks] += 1
-            # S posodabljanjem ostalih atributov se nam ni treba ukvarjati.
         return None
 
     def najdi_vse_mrtve(self, gr):
-        """Ko je ena grupa označena za mrtvo, so mrtve tudi vse ostale
+        """Najde vse mrtve grupe znotraj danega teritorija.
+        
+        Ko je ena grupa označena za mrtvo, so mrtve tudi vse ostale
         grupe, ki se nahajajo znotraj istega teritorija. Vrnemo seznam
-        vseh takih grup. Vrne seznam, ki vsebuje originalno mrtvo grupo
-        in tudi vse najdene. Argument mora biti podmnožica množice
-        koordinat dane grupe."""
+        vseh takih grup. Seznam vsebuje tudi originalno mrtvo grupo.
+        Argument mora biti (neprazna) podmnožica množice koordinat dane grupe.
+        """
         kamen = next(iter(gr))
         grupa = self.najdi_grupo(kamen)
         barva = grupa.barva
@@ -340,10 +364,15 @@ class Go:
         return mrtve
 
     def prestej_teritorij(self):
-        """Vrne par x, tako da je pr1(x) število presečišč v teritorjiju
-        črnega, pr2(x) pa v teritoriju belega. Množica mrtve_grupe je unija
-        poljubnih podmnožic množic koordinat mrtvih grup."""
-        prazna_polja = {polje for polje in self.koordinate if self.poglej(polje) == None}
+        """Prešteje presečišča v teritoriju obeh igralcev.
+        
+        Vrne par x, tako da je pr1(x) število presečišč v
+        teritorjiju črnega, pr2(x) pa v teritoriju belega.
+        """
+        prazna_polja = {
+            polje for polje in self.koordinate
+            if self.poglej(polje) == None
+            }
         crni, beli = 0, 0
         while len(prazna_polja) > 0:
             polje = next(iter(prazna_polja))
@@ -367,8 +396,7 @@ class Go:
         return crni - crni_u + beli_u - beli - self.komi
 
     def zmagovalec_na_potezi(self):
-        """Če je zmagovalec igralec na potezi,
-        vrne True, sicer vrne False."""
+        """Če je zmagovalec igralec na potezi, vrne True, sicer False."""
         return (
             (self.na_potezi() == CRNI and self.zmagovalec() > 0)
             or

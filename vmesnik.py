@@ -1,7 +1,9 @@
-import Model, MonteCarlo
-from random import choice
-from copy import deepcopy
-import threading, time, queue
+import model
+import montecarlo
+import threading
+import time
+import queue
+import random
 
 
 def izberi_velikost():
@@ -23,11 +25,11 @@ def izberi_barvo():
         bo barva izbrana naključno? (č/b/n)\n>>> """.replace("        ", "")
     barva = input(niz)
     if barva == "č":
-        return Model.CRNI
+        return model.CRNI
     elif barva == "b":
-        return Model.BELI
+        return model.BELI
     elif barva == "n":
-        return choice([Model.CRNI, Model.BELI])
+        return random.choice([model.CRNI, model.BELI])
     else:
         print("Prosim, vpiši veljavno vrednost!\n")
         return izberi_barvo()
@@ -47,14 +49,15 @@ def izberi_nacin_igre():
 def zahtevaj_potezo():
     poteza = input("Vpiši svojo potezo\n>>> ")
     if poteza == 'pass':
-        return Model.PASS
+        return model.PASS
     else:
         return eval(poteza)
 
 
 def doloci_mrtve(go):
     kamen = input(
-        "Vpiši polje, na katerem se nahaja mrtev kamen (Če jih ni, pritisni enter).\n>>> "
+        """Vpiši polje, na katerem se nahaja mrtev kamen \
+        (Če jih ni, pritisni enter).\n>>> """.replace("        ", "")
         )
     if kamen == "":
         return None
@@ -105,7 +108,7 @@ def izpis_koncnega_rezultata(go):
 def pvp():
     """Vmesnik za igro s prijateljem."""
     velikost = izberi_velikost()
-    igra = Model.Go(velikost)
+    igra = model.Go(velikost)
     while not igra.konec:
         print(izpis_igre(igra))
         while True:
@@ -141,10 +144,9 @@ def tuhtaj(mc):
         while True:
         # Notranja while-zanka se izvaja, dokler se ena simulacija ne konča 
             neraziskani = mc.neraziskani(stanje)
-            neraziskani = mc.neraziskani(stanje)
             if len(neraziskani) > 0:
-                izbira = choice(list(neraziskani))
-                stanje = MonteCarlo.Vozel(mc, izbira, stanje)
+                izbira = random.choice(list(neraziskani))
+                stanje = montecarlo.Vozel(mc, izbira, stanje)
                 stanje.simuliraj_igro()
                 stanje = mc.stanje
                 break
@@ -153,26 +155,26 @@ def tuhtaj(mc):
 
 
 def tuhtaj_dokler_igralec_ne_vnese_poteze(mc):
-    que = queue.Queue()
     # Objekt razreda Queue potrebujemo, da vanj shranimo
-    # vrednost klica funkcije 'zahtevaj_potezo'
+    # vrednost klica funkcije 'zahtevaj_potezo'.
+    que = queue.Queue()
     t = threading.Thread(target=tuhtaj, args=(mc,))
     g = threading.Thread(target=lambda q: q.put(zahtevaj_potezo()), args=(que,))
     t.start()
     g.start()
-    g.join() # Najprej počakamo, da se zaključi g
-    t.run = False # Ustavimo while-zanko znotraj klica tuhtaj()
+    g.join()        # Najprej počakamo, da se zaključi g.
+    t.run = False        # Ustavimo še while-zanko znotraj klica tuhtaj().
     t.join
     return que.get()
 
 
-def pvb(cas=5):
+def pvb():
     """Vmesnik za igro proti računalniku."""
     velikost = izberi_velikost()
     barva = izberi_barvo()
-    igra = Model.Go(velikost)
-    mc = MonteCarlo.MonteCarlo(igra, cas)
-    while not igra.konec: # Zanka se vrti, dokler se igra ne konča
+    igra = model.Go(velikost)
+    mc = montecarlo.MonteCarlo(igra)
+    while not igra.konec:
         print(izpis_igre(igra))
         if igra.na_potezi() == barva:
             while True:
@@ -187,17 +189,6 @@ def pvb(cas=5):
         else:
             poteza = mc.najboljsa_poteza()
             igra.igraj(poteza)
-            mc.stanje = mc.potomec_poteza(poteza)
-        # Zdaj posodobimo še iskalno drevo
-        stikalo = True
-        for vozel in mc.vozli[mc.stanje][0]: # Pogledamo, ali vozel za novonastalo pozicijo že obstaja
-            if vozel.poteza == poteza:
-                mc.stanje = vozel # Posodobimo stanje iskalnega drevesa
-                stikalo = False
-                break # Prekinemo for-zanko
-        if stikalo: # Sicer ustvarimo nov vozel
-            novi = MonteCarlo.Vozel(mc, poteza, mc.stanje)
-            mc.stanje = novi
     print(izpis_koncnega_rezultata(igra))
         
 
@@ -207,6 +198,7 @@ def main():
         return pvp()
     else:
         return pvb()
+
 
 
 if __name__ == "__main__":

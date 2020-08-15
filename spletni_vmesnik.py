@@ -1,12 +1,11 @@
-import Model
-import MonteCarlo
+import model
+import montecarlo
 import bottle
 import threading
-from random import choice
+import random
 
-
-SKRIVNOST = "velika_skrivnost"
-igre = Model.Igre()
+SKRIVNOST = "velika skrivnost"
+igre = model.Igre()
 simulacije = {}
 # Slovar z objekti razreda 'MonteCarlo'.
 # Ključi so enaki ključem slovarja 'igre'.
@@ -45,9 +44,9 @@ def velikost():
 def st(n):
     id_igre, igra = igre.nova_igra(n)
     if bottle.request.get_cookie("nacin_igre") == "pvb":
-        igra.bot = choice([Model.BELI, Model.CRNI])
+        igra.bot = random.choice([model.BELI, model.CRNI])
         # Barvo izberemo naključno
-        mc = MonteCarlo.MonteCarlo(igra)
+        mc = montecarlo.MonteCarlo(igra)
         simulacije[id_igre] = mc
     cookie = str(n)
     id_igre = str(id_igre)
@@ -101,7 +100,7 @@ def igra_poteza(i ,j):
 def passs():
     id_igre = int(bottle.request.get_cookie("id_igre"))
     igra = igre.igre[id_igre]
-    igra.igraj(Model.PASS)
+    igra.igraj(model.PASS)
     bottle.redirect("/igra/")
 
 
@@ -109,7 +108,7 @@ def passs():
 def resign():
     id_igre = int(bottle.request.get_cookie("id_igre"))
     igra = igre.igre[id_igre]
-    igra.igraj(Model.PREDAJA)
+    igra.igraj(model.PREDAJA)
     bottle.redirect("/igra/")
 
 
@@ -120,11 +119,10 @@ def undo():
     igre.igre[id_igre] = igre.igre[id_igre].undo()
     # Zamenjamo vrednost ključa, saj funkcija
     # 'undo' vrne novo instanco razreda 'Go'
-    simulacije[id_igre].stanje = simulacije[id_igre].stanje.parent 
-    # Prilagodimo stanje iskalnega drevesa
     if nacin == "pvb":
         igre.igre[id_igre] = igre.igre[id_igre].undo()
-        simulacije[id_igre].stanje = simulacije[id_igre].stanje.parent 
+        # Prilagodimo še stanje iskalnega drevesa
+        simulacije[id_igre].stanje = simulacije[id_igre].stanje.parent.parent
         # Če gre za igro proti računalniku,
         # je treba nazaj vzeti dve potezi
     bottle.redirect("/igra/")    

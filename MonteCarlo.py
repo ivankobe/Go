@@ -1,45 +1,48 @@
-import Model
-from random import choice, shuffle
-from math import sqrt, log
-from time import time
-from copy import deepcopy
+import model
+import random
+import math
+import time
+import copy
 
 
 class Vozel:
 
-    # Objekti razreda Vozel so gradniki iskalnega drevesa
+    # Objekti razreda Vozel so gradniki iskalnega drevesa (nodes).
     
     def __init__(self, mc, poteza=None, parent=None):
-        self.poteza = poteza # Zadnja odigrana poteza
-        self.mc = mc # Referenca na iskalno drevo (objekt razreda MonteCarlo)
+        self.poteza = poteza        # Zadnja odigrana poteza
+        self.mc = mc        # Referenca na iskalno drevo (objekt razreda MonteCarlo)
         self.parent = parent
         self.mc.vozli[self] = set(), set()
         self.stevilo_simulacij = 0
         self.stevilo_zmag = 0
         if parent == None:
-            self.barva = None
             # Barva vozla je barva zadnjega odigranega kamna
-            self.igra = Model.Go(self.mc.velikost)
-            # Vsak vozel ima svojo kopijo igre
+            self.barva = None
+            self.igra = model.Go(self.mc.velikost)
         else:
-            if parent.barva == Model.CRNI:
-                self.barva = Model.BELI
+            if parent.barva == model.CRNI:
+                self.barva = model.BELI
             else:
-                self.barva = Model.CRNI
+                self.barva = model.CRNI
             self.mc.vozli[self.parent][0].add(self)
-            self.igra = deepcopy(self.parent.igra)
+            self.igra = copy.deepcopy(self.parent.igra)
             self.igra.igraj(poteza)
         for poteza in self.igra.dovoljene_poteze():
             self.mc.vozli[self][1].add(poteza)
-        # mc.vozli je torej slovar, katerega ključi so vozli, njigove vrednosti pa so dvojice x,
-        # tako da je pr1(x) množica vseh že raziskanih potomcev (se pravi vozlov), pr2(x) pa
-        # množica vseh dovoljenih potez v poziciji, ki jo predstavlja dani vozel.
+        # mc.vozli je torej slovar, katerega ključi so vozli, njigove
+        # vrednosti pa so dvojice x, tako da je pr1(x) množica vseh že
+        # raziskanih potomcev (se pravi vozlov), pr2(x) pa množica vseh
+        # dovoljenih potez v poziciji, ki jo predstavlja dani vozel.
 
     def zabelezi_rezultat(self, rezultat):
-        """Sebi, kot tudi vsem vozlom, ki so nad njim, poveča število simulacij
+        """Glede na rezultat simulacije posodobi stanje iskalnega drevesa.
+        
+        Sebi, kot tudi vsem vozlom, ki so nad njim, poveča število simulacij
         za ena, v primeru, da je zmagovalec simulirane igre igralec na potezi,
-        pa sebi in sebi nadrejenim vozlom za ena poveča tudi število zmag."""
-        zmagovalec = Model.CRNI if rezultat > 0 else Model.BELI
+        pa sebi in sebi nadrejenim vozlom za ena poveča tudi število zmag.
+        """
+        zmagovalec = model.CRNI if rezultat > 0 else model.BELI
         vozel = self
         while True:
             vozel.stevilo_simulacij += 1
@@ -50,16 +53,14 @@ class Vozel:
             else:
                 vozel = vozel.parent
             
-
     def simuliraj_igro(self):
-            """Iz pozicije, predstavljene z danim vozlom,
-            odigramo naključno igro. Vrnemo rezultat."""
-            igra = deepcopy(self.igra)
+            """Odigramo naključno igro. Vrnemo rezultat."""
+            igra = copy.deepcopy(self.igra)
             while not igra.konec:
                 na_voljo = list(igra.prazna_polja)
                 while True:
                     if len(na_voljo) > 0:
-                        poteza = choice(na_voljo)
+                        poteza = random.choice(na_voljo)
                         if not igra.tocka_je_oko(poteza):
                             try:
                                 igra.igraj(poteza)
@@ -69,7 +70,7 @@ class Vozel:
                         else:
                             na_voljo.remove(poteza)
                     else:
-                        igra.igraj(Model.PASS)
+                        igra.igraj(model.PASS)
                         break
             rezultat = igra.zmagovalec()
             self.zabelezi_rezultat(rezultat)
@@ -81,24 +82,22 @@ class MonteCarlo:
     # Iskalno drevo
 
     def __init__(self, igra):
-        # Drugi argument je maksimalni čas, ki
-        # si ga računalnik lahko vzame za potezo.
+
         self.igra = igra
         self.velikost = self.igra.velikost
         self.vozli = {}
         self.stanje = Vozel(self)
+        # Atribut cas je stevilo sekund, ki si jih
+        # računalnik vzame za premislek za izbiro poteze.
         self.cas = 3
-        # Število sekund, ki si jih računalnik
-        # vzame za premislek za izbiro poteze
 
     def potomec_poteza(self, poteza):
-        """Vrne potomca, ki predstavlja pozicijo, v katero
-        pelje dana poteza. Če poteza ni dovoljena, vrne None"""
-        # Najprej preverimo, ali iskani vozel že obstaja
+        """Poišče/ustvari vozel, ki ustreza dani potezi."""
+        # Najprej preverimo, ali iskani vozel že obstaja:
         for vozel in self.vozli[self.stanje][0]:
             if vozel.poteza == poteza:
                 return vozel
-        # V nasprotnem primeru preverimo, ali je poteza dovoljena
+        # V nasprotnem primeru preverimo, ali je poteza dovoljena:
         if poteza in self.vozli[self.stanje][1]:
             potomec = Vozel(self, poteza, self.stanje)
             return potomec
@@ -106,33 +105,43 @@ class MonteCarlo:
             return
 
     def ucb1(self, vozel):
-        """V primeru, da za vsako dovoljeno potezo že obstaja
-        ustrezen vozel, funkcija ucb1 izbere enega izmed potomcev."""
+        """Upper confidence bound 1."""
         ucb = lambda vozel: (
             vozel.stevilo_zmag / vozel.stevilo_simulacij +
-            sqrt(2 * (log(vozel.parent.stevilo_simulacij) / vozel.stevilo_simulacij))
+            math.sqrt(
+                2 * (math.log(vozel.parent.stevilo_simulacij) / vozel.stevilo_simulacij)
+                )
             )
         return max(self.vozli[vozel][0], key=ucb)
             
     def neraziskani(self, vozel):
         """Vrne množico dovoljenih potez, ki jih še nismo raziskali."""
-        return self.vozli[vozel][1] - {potomec.poteza for potomec in self.vozli[vozel][0]}
+        return (
+            self.vozli[vozel][1] -
+            {potomec.poteza for potomec in self.vozli[vozel][0]}
+        )
 
     def najboljsa_poteza(self):
-        """Za  pozicijo aproksimira najboljšo potezo in jo vrne."""
+        """Za  pozicijo aproksimira najboljšo potezo in jo vrne.
+        
+        Pozor: funkcija avtomatično spremeni stanje iskalnega drevesa. 
+        """
         stanje = self.stanje
-        zacetek = time()
+        zacetek = time.time()
         if len(self.vozli[stanje][1]) == 0:
-            # Če ni dovoljenih potez, se odrečemo potezi
-            return Model.PASS
-        elif self.igra.zadnja_poteza == Model.PASS and self.igra.zmagovalec_na_potezi():
-            # Če se nasprotnik odreče potezi in smo v prednosti, se ji odrečemo tudi mi 
-            return Model.PASS
+            # Če ni dovoljenih potez, se odrečemo potezi.
+            return model.PASS
+        elif (
+            self.igra.zadnja_poteza == model.PASS
+            and self.igra.zmagovalec_na_potezi()
+            ):
+            # Če se nasprotnik odreče potezi in smo v prednosti, se ji odrečemo tudi mi.
+            return model.PASS
         else:
-            while time() - zacetek < self.cas:
+            while time.time() - zacetek < self.cas:
                 neraziskani = self.neraziskani(stanje)
                 if len(neraziskani) > 0:
-                    izbira = choice(list(neraziskani))
+                    izbira = random.choice(list(neraziskani))
                     stanje = Vozel(self, izbira, stanje)
                     stanje.simuliraj_igro()
                     stanje = self.stanje
@@ -141,10 +150,10 @@ class MonteCarlo:
             najboljsa = lambda vozel: vozel.stevilo_zmag / vozel.stevilo_simulacij
             najboljsi_potomec = max(self.vozli[self.stanje][0], key=najboljsa)
             # Če je procent zmag najobetavnejšega potomca
-            # manjši od ene desetine, igro predamo
+            # manjši od ene desetine, igro predamo.
             if najboljsa(najboljsi_potomec) < 0.1:
-                return Model.PREDAJA
+                return model.PREDAJA
             else:
-                self.stanje = najboljsi_potomec # Posodobimo stanje
+                # Na koncu posodobimo stanje iskalnega drevesa.
+                self.stanje = najboljsi_potomec
                 return najboljsi_potomec.poteza
-
