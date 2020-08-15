@@ -5,5 +5,5 @@ Upoštevamo kitajska pravila, dostopna na povezavi https://senseis.xmp.net/?Chin
 
 # Navodila za zagon
 
-Tekstovni vmesnik lahko zaženete z ukazom 'python3 -i tekstovni_vmesnik.py',
-spletni vmesnik pa z ukazom 'python3 -i spletni_vmesnik.py'.
+Tekstovni vmesnik lahko zaženete z ukazom `python3 -i tekstovni_vmesnik.py`,
+spletni vmesnik pa z ukazom `python3 -i spletni_vmesnik.py`.
